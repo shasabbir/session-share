@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cloud Browser Gateway</title>
+    <title>ChatGPT</title>
     <style>
         * {
             box-sizing: border-box;
@@ -11,16 +11,57 @@
             padding: 0;
         }
         html, body {
-            width: 100%;
-            height: 100%;
+            width: 100vw;
+            height: 100vh;
             overflow: hidden;
-            background: #0f172a;
+            background: #202123;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
         #browser-frame {
             width: 100%;
             height: 100%;
             border: none;
             display: block;
+        }
+        
+        /* Floating Responsive Mode Switcher */
+        .mode-toggle {
+            position: fixed;
+            bottom: 12px;
+            right: 12px;
+            z-index: 99999;
+            background: rgba(32, 33, 35, 0.88);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 30px;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+            opacity: 0.35;
+            transition: opacity 0.25s ease;
+        }
+        .mode-toggle:hover, .mode-toggle:focus-within {
+            opacity: 1;
+        }
+        .mode-btn {
+            background: transparent;
+            border: none;
+            color: #9ca3af;
+            padding: 5px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+        .mode-btn.active {
+            background: #10a37f;
+            color: #ffffff;
+            font-weight: 600;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.3);
         }
     </style>
 </head>
@@ -29,15 +70,52 @@
             allow="fullscreen; clipboard-read; clipboard-write; autoplay"
             src="about:blank"></iframe>
 
+    <div class="mode-toggle" id="mode-toggle" title="Switch View Mode">
+        <button class="mode-btn" id="btn-desktop" onclick="switchMode('desktop')">💻 PC</button>
+        <button class="mode-btn" id="btn-mobile" onclick="switchMode('mobile')">📱 Phone</button>
+    </div>
+
     <script>
-        // Auto-detect mobile devices vs desktop
-        const isMobile = /android|bb\d+|meego|mobile|iphone|ipod|blackberry|iemobile|opera\ m(ob|in)i/i.test(navigator.userAgent);
-        const endpoint = isMobile ? '/mobile/' : '/desktop/';
-        const streamPath = isMobile ? 'mobile/websockify' : 'desktop/websockify';
-        
-        // Connect automatically in edge-to-edge mode while keeping address bar URL completely clean
-        const viewerUrl = endpoint + 'vnc.html?autoconnect=true&resize=remote&path=' + streamPath;
-        document.getElementById('browser-frame').src = viewerUrl;
+        function detectPreferredMode() {
+            // Check manual URL parameter first
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('mode') === 'mobile') return 'mobile';
+            if (params.get('mode') === 'desktop') return 'desktop';
+            
+            // Check saved user preference in browser
+            const saved = localStorage.getItem('chatgpt_gateway_mode');
+            if (saved === 'mobile' || saved === 'desktop') return saved;
+            
+            // Auto-detect based on screen width and User-Agent
+            const isSmallScreen = window.innerWidth <= 768 || window.screen.width <= 768;
+            const isMobileDevice = /android|iphone|ipad|ipod|mobile|touch/i.test(navigator.userAgent);
+            return (isSmallScreen || isMobileDevice) ? 'mobile' : 'desktop';
+        }
+
+        function switchMode(mode) {
+            localStorage.setItem('chatgpt_gateway_mode', mode);
+            
+            const btnDesktop = document.getElementById('btn-desktop');
+            const btnMobile = document.getElementById('btn-mobile');
+            if (btnDesktop && btnMobile) {
+                btnDesktop.classList.toggle('active', mode === 'desktop');
+                btnMobile.classList.toggle('active', mode === 'mobile');
+            }
+
+            const endpoint = (mode === 'mobile') ? '/mobile/' : '/desktop/';
+            const streamPath = (mode === 'mobile') ? 'mobile/websockify' : 'desktop/websockify';
+            
+            // resize=scale ensures the canvas automatically scales to fit 100% of the viewport (NO scrollbars)
+            const targetUrl = endpoint + 'vnc.html?autoconnect=true&resize=scale&reconnect=true&path=' + streamPath;
+            
+            const iframe = document.getElementById('browser-frame');
+            if (iframe.src !== targetUrl) {
+                iframe.src = targetUrl;
+            }
+        }
+
+        // Initialize on page load
+        switchMode(detectPreferredMode());
     </script>
 </body>
 </html>
