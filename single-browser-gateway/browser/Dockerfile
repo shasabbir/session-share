@@ -1,42 +1,23 @@
-FROM ubuntu:24.04
+FROM alpine:3.20
 
-ENV DEBIAN_FRONTEND=noninteractive
-ENV LANG=C.UTF-8
+# 1. Enable official Alpine HTTPS repositories (Cloudflare CDN - immune to ISP port 80 proxy blocks)
+RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.20/main" > /etc/apk/repositories \
+    && echo "https://dl-cdn.alpinelinux.org/alpine/v3.20/community" >> /etc/apk/repositories
 
-# Force HTTPS on all repositories to bypass transparent ISP port-80 HTTP proxies
-RUN sed -i 's|http://|https://|g' /etc/apt/sources.list.d/ubuntu.sources 2>/dev/null || true \
-    && sed -i 's|http://|https://|g' /etc/apt/sources.list 2>/dev/null || true
-
-# 1. Install base utilities, virtual display (Xvfb), window manager (Openbox), and noVNC
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# 2. Install Chromium, Xvfb virtual display, Openbox, x11vnc, and noVNC
+RUN apk update && apk add --no-cache \
+    chromium \
     xvfb \
     openbox \
     x11vnc \
     novnc \
     websockify \
+    bash \
     curl \
-    wget \
     ca-certificates \
-    procps \
-    gnupg \
-    fonts-liberation \
-    fonts-noto-color-emoji \
-    && rm -rf /var/lib/apt/lists/*
-
-# 2. Install official Google Chrome (bypasses Ubuntu snapd)
-RUN ARCH=$(dpkg --print-architecture) \
-    && if [ "$ARCH" = "amd64" ]; then \
-        echo "Installing official Google Chrome for amd64..." \
-        && curl -fsSL https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -o /tmp/chrome.deb \
-        && apt-get update \
-        && apt-get install -y --no-install-recommends /tmp/chrome.deb \
-        && rm -f /tmp/chrome.deb \
-        && ln -sf /usr/bin/google-chrome-stable /usr/bin/chromium; \
-    else \
-        echo "Installing distribution browser for $ARCH..." \
-        && apt-get update && apt-get install -y --no-install-recommends chromium; \
-    fi \
-    && rm -rf /var/lib/apt/lists/*
+    font-noto \
+    font-noto-emoji \
+    && ln -sf /usr/bin/chromium-browser /usr/bin/chromium 2>/dev/null || true
 
 # 3. Ensure noVNC root index points to vnc.html
 RUN ln -sf /usr/share/novnc/vnc.html /usr/share/novnc/index.html
