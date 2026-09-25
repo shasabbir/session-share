@@ -34,6 +34,12 @@ if ! command -v docker &> /dev/null; then
     apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 fi
 
+# Ensure Docker uses reliable public DNS
+if [ ! -f /etc/docker/daemon.json ]; then
+    echo '{"dns": ["8.8.8.8", "1.1.1.1"]}' > /etc/docker/daemon.json
+    systemctl restart docker
+fi
+
 systemctl enable --now docker
 
 # 3. Install Apache2 and utilities
@@ -117,8 +123,18 @@ if [ -f "${PROJECT_DIR}/admin/browser-admin.service" ]; then
     systemctl enable --now browser-admin.service
 fi
 
+# Sync host's verified working apt sources into container context
+if [ -f "/etc/apt/sources.list.d/ubuntu.sources" ]; then
+    echo "Syncing host apt sources to build context..."
+    cp /etc/apt/sources.list.d/ubuntu.sources "${PROJECT_DIR}/browser/host.sources"
+elif [ -f "/etc/apt/sources.list" ]; then
+    echo "Syncing host apt sources to build context..."
+    cp /etc/apt/sources.list "${PROJECT_DIR}/browser/host.sources"
+fi
+
 # Build and start containers with restart: always
-docker compose up -d --build
+docker compose build --no-cache
+docker compose up -d
 
 SERVER_IP=$(hostname -I | awk '{print $1}')
 
