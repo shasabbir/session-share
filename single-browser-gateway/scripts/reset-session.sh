@@ -1,7 +1,6 @@
 #!/bin/bash
 set -e
 
-# Resolve project root directory (parent of scripts/)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
@@ -11,25 +10,27 @@ echo "=========================================="
 
 cd "$PROJECT_ROOT"
 
-if [ ! -d "data/chromium-profile" ]; then
-    echo "[!] Profile directory data/chromium-profile does not exist yet."
-    exit 0
+TARGET="${1:-all}" # 'all', 'desktop', or 'mobile'
+
+if [ "$TARGET" = "desktop" ] || [ "$TARGET" = "all" ]; then
+    echo "[*] Resetting Desktop session..."
+    docker compose stop browser-desktop 2>/dev/null || true
+    rm -rf data/profile-desktop/*
+    mkdir -p data/profile-desktop
+    chmod -R 777 data/profile-desktop
+    docker compose start browser-desktop 2>/dev/null || true
 fi
 
-echo "[1/3] Stopping browser container..."
-docker compose stop browser
-
-echo "[2/3] Purging persistent browser session data..."
-# Wipe profile contents (cookies, logins, cache)
-rm -rf data/chromium-profile/*
-# Re-ensure directory permissions
-mkdir -p data/chromium-profile
-chmod 777 data/chromium-profile
-
-echo "[3/3] Restarting browser with fresh profile..."
-docker compose start browser
+if [ "$TARGET" = "mobile" ] || [ "$TARGET" = "all" ]; then
+    echo "[*] Resetting Mobile session..."
+    docker compose stop browser-mobile 2>/dev/null || true
+    rm -rf data/profile-mobile/*
+    mkdir -p data/profile-mobile
+    chmod -R 777 data/profile-mobile
+    docker compose start browser-mobile 2>/dev/null || true
+fi
 
 echo "=========================================="
-echo "[SUCCESS] Session reset complete!"
-echo "Chromium is now running with a fresh state."
+echo "[SUCCESS] Session reset complete for target: ${TARGET}!"
+echo "Browser instances restarted with fresh states."
 echo "=========================================="

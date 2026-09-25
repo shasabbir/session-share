@@ -10,26 +10,21 @@ BACKUP_DIR="${PROJECT_ROOT}/backups"
 mkdir -p "$BACKUP_DIR"
 
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-BACKUP_FILE="${BACKUP_DIR}/chromium-profile-${TIMESTAMP}.tar.gz"
+BACKUP_FILE="${BACKUP_DIR}/browser-profiles-${TIMESTAMP}.tar.gz"
 
 echo "=========================================="
-echo "   Chromium Profile Backup Utility"
+echo "   Browser Profiles Backup Utility"
 echo "=========================================="
 echo "Backup destination: ${BACKUP_FILE}"
 
-if [ ! -d "data/chromium-profile" ] || [ -z "$(ls -A data/chromium-profile 2>/dev/null)" ]; then
-    echo "[!] Profile directory is empty. Nothing to backup."
-    exit 1
-fi
+echo "[1/3] Pausing containers for consistent disk snapshot..."
+docker compose pause browser-desktop browser-mobile 2>/dev/null || true
 
-echo "[1/3] Pausing browser container to ensure write consistency..."
-docker compose pause browser 2>/dev/null || true
+echo "[2/3] Compressing desktop and mobile profiles..."
+tar -czf "$BACKUP_FILE" -C data .
 
-echo "[2/3] Compressing profile data..."
-tar -czf "$BACKUP_FILE" -C data/chromium-profile .
-
-echo "[3/3] Resuming browser container..."
-docker compose unpause browser 2>/dev/null || true
+echo "[3/3] Resuming browser containers..."
+docker compose unpause browser-desktop browser-mobile 2>/dev/null || true
 
 BACKUP_SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
 

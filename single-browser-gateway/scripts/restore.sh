@@ -21,25 +21,25 @@ if [ ! -f "$BACKUP_FILE" ]; then
 fi
 
 echo "=========================================="
-echo "   Chromium Profile Restore Utility"
+echo "   Browser Profiles Restore Utility"
 echo "=========================================="
 echo "Restoring from: $BACKUP_FILE"
 
-echo "[1/4] Stopping browser container..."
-docker compose stop browser
+echo "[1/4] Stopping browser containers..."
+docker compose stop browser-desktop browser-mobile 2>/dev/null || true
 
-echo "[2/4] Clearing existing profile..."
-rm -rf data/chromium-profile/*
-mkdir -p data/chromium-profile
+echo "[2/4] Clearing existing profiles..."
+rm -rf data/profile-desktop/* data/profile-mobile/*
+mkdir -p data/profile-desktop data/profile-mobile
 
 echo "[3/4] Extracting backup archive..."
-tar -xzf "$BACKUP_FILE" -C data/chromium-profile/
-chmod -R 777 data/chromium-profile
+tar -xzf "$BACKUP_FILE" -C data/
+chmod -R 777 data/
 
-echo "[4/4] Starting browser container..."
-docker compose start browser
+echo "[4/4] Starting browser containers..."
+docker compose start browser-desktop browser-mobile 2>/dev/null || true
 
 echo "=========================================="
 echo "[SUCCESS] Restore complete!"
-echo "Browser restored to state from: $(basename "$BACKUP_FILE")"
+echo "Restored from: $(basename "$BACKUP_FILE")"
 echo "=========================================="

@@ -4,6 +4,7 @@ set -e
 RESOLUTION="${RESOLUTION:-1920x1080}"
 TARGET_URL="${TARGET_URL:-https://example.com}"
 BROWSER_MODE="${BROWSER_MODE:-app}"
+IS_MOBILE="${IS_MOBILE:-false}"
 
 echo "================================================="
 echo "   Single Website Cloud Browser Gateway"
@@ -11,6 +12,7 @@ echo "================================================="
 echo "Target URL:  ${TARGET_URL}"
 echo "Resolution:  ${RESOLUTION}"
 echo "Mode:        ${BROWSER_MODE}"
+echo "Is Mobile:   ${IS_MOBILE}"
 echo "================================================="
 
 # Remove leftover X server locks if container was forcefully restarted
@@ -19,7 +21,6 @@ rm -f /tmp/.X99-lock /tmp/.X11-unix/X99
 # 1. Start Xvfb (Virtual Framebuffer Display :99)
 echo "[1/4] Starting virtual display (Xvfb)..."
 Xvfb :99 -screen 0 "${RESOLUTION}x24" -ac -nolisten tcp &
-XVFB_PID=$!
 export DISPLAY=:99
 sleep 1
 
@@ -41,15 +42,18 @@ HEIGHT=$(echo "${RESOLUTION}" | cut -d'x' -f2)
 
 EXTRA_FLAGS=""
 if [ "${BROWSER_MODE}" = "kiosk" ]; then
-    EXTRA_FLAGS="--kiosk"
+    EXTRA_FLAGS="${EXTRA_FLAGS} --kiosk"
+fi
+
+# If configured as mobile instance, emulate mobile device & user-agent so responsive websites render mobile UI
+if [ "${IS_MOBILE}" = "true" ]; then
+    echo "Configuring Mobile User-Agent and touch events..."
+    MOBILE_UA="Mozilla/5.0 (Linux; Android 13; SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+    EXTRA_FLAGS="${EXTRA_FLAGS} --user-agent=\"${MOBILE_UA}\" --enable-touch-drag-drop --touch-events=enabled"
 fi
 
 echo "Launching Chromium in dedicated mode..."
 
-# Chromium flags designed for single-site appliance operation:
-# - '--app=...' removes URL address bar, tabs, and forward/backward buttons
-# - '--user-data-dir=/profile' persists cookies, logins, and local storage
-# - '--disable-session-crashed-bubble' prevents annoying crash prompts on restart
 exec chromium \
     --no-sandbox \
     --disable-gpu \

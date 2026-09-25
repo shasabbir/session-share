@@ -1,28 +1,56 @@
 services:
-  browser:
+  # Desktop Browser (Dedicated 1920x1080 Desktop View)
+  browser-desktop:
     build:
       context: ./browser
       dockerfile: Dockerfile
-    container_name: cloud-browser
+    container_name: cloud-browser-desktop
     restart: always
     environment:
       - TARGET_URL=${TARGET_URL:-https://example.com}
-      - RESOLUTION=${RESOLUTION:-1920x1080}
-      - BROWSER_MODE=${BROWSER_MODE:-app} # 'app' (frameless dedicated appliance) or 'kiosk'
+      - RESOLUTION=${DESKTOP_RESOLUTION:-1920x1080}
+      - BROWSER_MODE=${BROWSER_MODE:-app}
+      - IS_MOBILE=false
     volumes:
-      - ./data/chromium-profile:/profile
+      - ./data/profile-desktop:/profile
       - /dev/shm:/dev/shm
     ports:
-      # Strictly bind to 127.0.0.1 so the public cannot bypass Apache2 Basic Auth
       - "127.0.0.1:6080:6080"
     deploy:
       resources:
         limits:
-          cpus: '2.00'
-          memory: 4G
-        reservations:
-          memory: 1G
-    shm_size: '2gb'
+          cpus: '1.50'
+          memory: 2G
+    shm_size: '1gb'
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:6080 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Mobile Browser (Dedicated 412x915 Portrait Mobile View)
+  browser-mobile:
+    build:
+      context: ./browser
+      dockerfile: Dockerfile
+    container_name: cloud-browser-mobile
+    restart: always
+    environment:
+      - TARGET_URL=${TARGET_URL:-https://example.com}
+      - RESOLUTION=${MOBILE_RESOLUTION:-412x915}
+      - BROWSER_MODE=${BROWSER_MODE:-app}
+      - IS_MOBILE=true
+    volumes:
+      - ./data/profile-mobile:/profile
+      - /dev/shm:/dev/shm
+    ports:
+      - "127.0.0.1:6081:6080"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.50'
+          memory: 2G
+    shm_size: '1gb'
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:6080 || exit 1"]
       interval: 30s

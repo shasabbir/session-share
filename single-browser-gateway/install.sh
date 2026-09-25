@@ -14,6 +14,7 @@ cd "$PROJECT_DIR"
 
 echo "==========================================================="
 echo "   Single Website Cloud Browser Gateway Installer"
+echo "   (Dual Desktop + Mobile Responsive Architecture)"
 echo "==========================================================="
 
 # 1. Update package lists
@@ -63,16 +64,16 @@ fi
 echo "[6/7] Deploying Apache reverse proxy configuration..."
 cp "${PROJECT_DIR}/apache/browser.conf" /etc/apache2/sites-available/browser.conf
 
-# Disable default Apache site if present and enable browser gateway
 a2dissite 000-default.conf 2>/dev/null || true
 a2ensite browser.conf
 
 apache2ctl configtest
 systemctl reload apache2
 
-# 7. Setup persistent directories and build container
-echo "[7/7] Initializing persistent storage and building Docker container..."
-mkdir -p "${PROJECT_DIR}/data/chromium-profile"
+# 7. Setup persistent directories and build containers
+echo "[7/7] Initializing persistent storage and building Docker containers..."
+mkdir -p "${PROJECT_DIR}/data/profile-desktop"
+mkdir -p "${PROJECT_DIR}/data/profile-mobile"
 mkdir -p "${PROJECT_DIR}/backups"
 chmod -R 777 "${PROJECT_DIR}/data"
 
@@ -86,16 +87,15 @@ if [ ! -f "${PROJECT_DIR}/.env" ]; then
     cp "${PROJECT_DIR}/.env.example" "${PROJECT_DIR}/.env"
 fi
 
-# Optional: Register admin micro-service in systemd
+# Register admin micro-service in systemd
 if [ -f "${PROJECT_DIR}/admin/browser-admin.service" ]; then
-    # Adjust working directory to current path
     sed -i "s|/opt/single-browser-gateway|${PROJECT_DIR}|g" "${PROJECT_DIR}/admin/browser-admin.service"
     cp "${PROJECT_DIR}/admin/browser-admin.service" /etc/systemd/system/browser-admin.service
     systemctl daemon-reload
     systemctl enable --now browser-admin.service
 fi
 
-# Build and start container
+# Build and start containers
 docker compose up -d --build
 
 SERVER_IP=$(hostname -I | awk '{print $1}')
@@ -103,11 +103,13 @@ SERVER_IP=$(hostname -I | awk '{print $1}')
 echo "==========================================================="
 echo "   INSTALLATION COMPLETE!"
 echo "==========================================================="
-echo "Access your dedicated browser gateway at:"
+echo "Auto-detected entry point (PC -> Desktop / Phone -> Mobile):"
 echo "   http://${SERVER_IP}/example.com"
 echo ""
-echo "Access the admin control panel at:"
-echo "   http://${SERVER_IP}/admin"
+echo "Direct Links:"
+echo "   Desktop View:  http://${SERVER_IP}/desktop"
+echo "   Mobile View:   http://${SERVER_IP}/mobile"
+echo "   Admin Panel:   http://${SERVER_IP}/admin"
 echo ""
 echo "Username: ${ADMIN_USER}"
 echo "Password: (the password you configured)"
