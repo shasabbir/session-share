@@ -91,6 +91,8 @@ if command -v ufw &> /dev/null; then
 fi
 
 cp "${PROJECT_DIR}/apache/browser.conf" /etc/apache2/sites-available/browser.conf
+mkdir -p /var/www/html
+cp "${PROJECT_DIR}/apache/index.html" /var/www/html/index.html
 
 a2dissite 000-default.conf 2>/dev/null || true
 a2ensite browser.conf
@@ -123,9 +125,6 @@ if [ -f "${PROJECT_DIR}/admin/browser-admin.service" ]; then
     systemctl enable --now browser-admin.service
 fi
 
-# Clean up any temporary files
-rm -f "${PROJECT_DIR}/browser/host.sources"
-
 # Build and start containers with restart: always
 docker compose build --no-cache
 docker compose up -d
@@ -135,8 +134,11 @@ SERVER_IP=$(hostname -I | awk '{print $1}')
 echo "==========================================================="
 echo "   INSTALLATION COMPLETE (ALWAYS-ON RUNNING)!"
 echo "==========================================================="
-echo "Access on Port 5151:"
-echo "   Smart Gateway: http://${SERVER_IP}:5151/example.com"
+echo "Clean URL Entry Point (Any URL works!):"
+echo "   http://${SERVER_IP}:5151/www.chatgpt.com"
+echo "   http://${SERVER_IP}:5151/"
+echo ""
+echo "Direct Views:"
 echo "   Desktop View:  http://${SERVER_IP}:5151/desktop"
 echo "   Mobile View:   http://${SERVER_IP}:5151/mobile"
 echo "   Admin Panel:   http://${SERVER_IP}:5151/admin"

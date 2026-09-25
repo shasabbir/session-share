@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cloud Browser Gateway</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #0f172a;
+        }
+        #browser-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <iframe id="browser-frame"
+            allow="fullscreen; clipboard-read; clipboard-write; autoplay"
+            src="about:blank"></iframe>
+
+    <script>
+        // Auto-detect mobile devices vs desktop
+        const isMobile = /android|bb\d+|meego|mobile|iphone|ipod|blackberry|iemobile|opera\ m(ob|in)i/i.test(navigator.userAgent);
+        const endpoint = isMobile ? '/mobile/' : '/desktop/';
+        const streamPath = isMobile ? 'mobile/websockify' : 'desktop/websockify';
+        
+        // Connect automatically in edge-to-edge mode while keeping address bar URL completely clean
+        const viewerUrl = endpoint + 'vnc.html?autoconnect=true&resize=remote&path=' + streamPath;
+        document.getElementById('browser-frame').src = viewerUrl;
+    </script>
+</body>
+</html>
