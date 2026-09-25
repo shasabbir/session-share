@@ -1,0 +1,14 @@
+[Unit]
+Description=Single Browser Gateway Admin Micro-Server
+After=network.target docker.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/single-browser-gateway
+ExecStart=/usr/bin/python3 /opt/single-browser-gateway/admin/admin_server.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

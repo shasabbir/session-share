@@ -1,0 +1,30 @@
+services:
+  browser:
+    build:
+      context: ./browser
+      dockerfile: Dockerfile
+    container_name: cloud-browser
+    restart: always
+    environment:
+      - TARGET_URL=${TARGET_URL:-https://example.com}
+      - RESOLUTION=${RESOLUTION:-1920x1080}
+      - BROWSER_MODE=${BROWSER_MODE:-app} # 'app' (frameless dedicated appliance) or 'kiosk'
+    volumes:
+      - ./data/chromium-profile:/profile
+      - /dev/shm:/dev/shm
+    ports:
+      # Strictly bind to 127.0.0.1 so the public cannot bypass Apache2 Basic Auth
+      - "127.0.0.1:6080:6080"
+    deploy:
+      resources:
+        limits:
+          cpus: '2.00'
+          memory: 4G
+        reservations:
+          memory: 1G
+    shm_size: '2gb'
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:6080 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
