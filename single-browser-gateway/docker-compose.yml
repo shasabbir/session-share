@@ -4,6 +4,7 @@ services:
     build:
       context: ./browser
       dockerfile: Dockerfile
+      network: host
     container_name: cloud-browser-desktop
     restart: always
     environment:
@@ -33,6 +34,7 @@ services:
     build:
       context: ./browser
       dockerfile: Dockerfile
+      network: host
     container_name: cloud-browser-mobile
     restart: always
     environment:

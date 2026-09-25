@@ -123,13 +123,16 @@ if [ -f "${PROJECT_DIR}/admin/browser-admin.service" ]; then
     systemctl enable --now browser-admin.service
 fi
 
-# Sync host's verified working apt sources into container context
+# Sync host's verified working apt sources into container context and enforce HTTPS
+rm -f "${PROJECT_DIR}/browser/host.sources"
 if [ -f "/etc/apt/sources.list.d/ubuntu.sources" ]; then
     echo "Syncing host apt sources to build context..."
     cp /etc/apt/sources.list.d/ubuntu.sources "${PROJECT_DIR}/browser/host.sources"
+    sed -i 's|http://|https://|g' "${PROJECT_DIR}/browser/host.sources"
 elif [ -f "/etc/apt/sources.list" ]; then
     echo "Syncing host apt sources to build context..."
     cp /etc/apt/sources.list "${PROJECT_DIR}/browser/host.sources"
+    sed -i 's|http://|https://|g' "${PROJECT_DIR}/browser/host.sources"
 fi
 
 # Build and start containers with restart: always

@@ -3,22 +3,9 @@ FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=C.UTF-8
 
-# Use host's verified apt mirror or fallback to bd.archive.ubuntu.com to prevent ISP port 80 proxy 404s
-COPY host.sources* /tmp/
-RUN if [ -s /tmp/host.sources ]; then \
-        echo "Using host's working apt sources configuration..."; \
-        if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then \
-            cp /tmp/host.sources /etc/apt/sources.list.d/ubuntu.sources; \
-        else \
-            cp /tmp/host.sources /etc/apt/sources.list; \
-        fi; \
-    else \
-        echo "Switching to regional mirror (bd.archive.ubuntu.com)..."; \
-        sed -i 's|http://archive.ubuntu.com|http://bd.archive.ubuntu.com|g' /etc/apt/sources.list.d/ubuntu.sources 2>/dev/null || true; \
-        sed -i 's|http://security.ubuntu.com|http://bd.archive.ubuntu.com|g' /etc/apt/sources.list.d/ubuntu.sources 2>/dev/null || true; \
-        sed -i 's|http://archive.ubuntu.com|http://bd.archive.ubuntu.com|g' /etc/apt/sources.list 2>/dev/null || true; \
-        sed -i 's|http://security.ubuntu.com|http://bd.archive.ubuntu.com|g' /etc/apt/sources.list 2>/dev/null || true; \
-    fi
+# Force HTTPS on all repositories to bypass transparent ISP port-80 HTTP proxies
+RUN sed -i 's|http://|https://|g' /etc/apt/sources.list.d/ubuntu.sources 2>/dev/null || true \
+    && sed -i 's|http://|https://|g' /etc/apt/sources.list 2>/dev/null || true
 
 # 1. Install base utilities, virtual display (Xvfb), window manager (Openbox), and noVNC
 RUN apt-get update && apt-get install -y --no-install-recommends \
