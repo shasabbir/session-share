@@ -78,7 +78,7 @@ else
 fi
 
 # 6. Configure Apache Port 5151 & Site
-echo "[6/7] Deploying Apache reverse proxy on port 5151..."
+echo "[6/7] Deploying Apache reverse proxy on port 5151 (000-browser.conf)..."
 if ! grep -q "Listen 5151" /etc/apache2/ports.conf; then
     echo "Configuring Apache to listen on port 5151..."
     echo "Listen 5151" >> /etc/apache2/ports.conf
@@ -90,12 +90,13 @@ if command -v ufw &> /dev/null; then
     ufw allow 5151/tcp 2>/dev/null || true
 fi
 
-cp "${PROJECT_DIR}/apache/browser.conf" /etc/apache2/sites-available/browser.conf
+# Deploy as 000-browser.conf to ensure top loading priority over other sites
+cp "${PROJECT_DIR}/apache/browser.conf" /etc/apache2/sites-available/000-browser.conf
 mkdir -p /var/www/html
 cp "${PROJECT_DIR}/apache/index.html" /var/www/html/index.html
 
-a2dissite 000-default.conf 2>/dev/null || true
-a2ensite browser.conf
+a2dissite browser.conf 2>/dev/null || true
+a2ensite 000-browser.conf
 
 apache2ctl configtest
 systemctl restart apache2
@@ -111,6 +112,7 @@ chmod -R 777 "${PROJECT_DIR}/data"
 chmod +x "${PROJECT_DIR}/scripts/"*.sh
 chmod +x "${PROJECT_DIR}/browser/start.sh"
 chmod +x "${PROJECT_DIR}/admin/admin_server.py"
+chmod +x "${PROJECT_DIR}/fix-apache.sh"
 
 # Configure .env if not exists
 if [ ! -f "${PROJECT_DIR}/.env" ]; then
