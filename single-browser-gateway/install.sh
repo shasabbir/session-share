@@ -2,7 +2,7 @@
 set -e
 
 # Single Website Cloud Browser Gateway - One-Step Installer
-# OS Target: Ubuntu 22.04 LTS
+# OS Target: Ubuntu 22.04 / 24.04 LTS
 # Target Port: 5151
 
 if [ "$EUID" -ne 0 ]; then
@@ -34,14 +34,12 @@ if ! command -v docker &> /dev/null; then
     apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 fi
 
-# Ensure Docker starts automatically on system boot
 systemctl enable --now docker
 
 # 3. Install Apache2 and utilities
 echo "[3/7] Installing Apache2 and authentication utilities..."
 apt-get install -y apache2 apache2-utils python3
 
-# Ensure Apache2 starts automatically on system boot
 systemctl enable apache2
 
 # 4. Enable required Apache modules
@@ -53,15 +51,23 @@ systemctl restart apache2
 echo "[5/7] Configuring authentication (.htpasswd)..."
 ADMIN_USER="${ADMIN_USER:-browseradmin}"
 
-if [ -f "/etc/apache2/.htpasswd" ]; then
-    echo "Found existing /etc/apache2/.htpasswd. Keeping existing users."
+# Ensure .htpasswd exists and has the admin user
+if [ -f "/etc/apache2/.htpasswd" ] && grep -q "^${ADMIN_USER}:" /etc/apache2/.htpasswd; then
+    echo "Found valid credentials for '${ADMIN_USER}' in /etc/apache2/.htpasswd."
 else
-    echo "Creating credentials for user: ${ADMIN_USER}"
+    echo "Configuring credentials for user: ${ADMIN_USER}"
     if [ -n "$ADMIN_PASS" ]; then
         htpasswd -bc /etc/apache2/.htpasswd "$ADMIN_USER" "$ADMIN_PASS"
     else
-        echo "Please enter a password for user '${ADMIN_USER}':"
-        htpasswd -c /etc/apache2/.htpasswd "$ADMIN_USER"
+        while true; do
+            echo "Please enter a password for user '${ADMIN_USER}':"
+            if htpasswd -c /etc/apache2/.htpasswd "$ADMIN_USER"; then
+                echo "Credentials saved successfully."
+                break
+            else
+                echo "[!] Password verification failed. Please try again."
+            fi
+        done
     fi
 fi
 
@@ -103,7 +109,7 @@ if [ ! -f "${PROJECT_DIR}/.env" ]; then
     cp "${PROJECT_DIR}/.env.example" "${PROJECT_DIR}/.env"
 fi
 
-# Register admin micro-service in systemd (always-on auto-restart)
+# Register admin micro-service in systemd
 if [ -f "${PROJECT_DIR}/admin/browser-admin.service" ]; then
     sed -i "s|/opt/single-browser-gateway|${PROJECT_DIR}|g" "${PROJECT_DIR}/admin/browser-admin.service"
     cp "${PROJECT_DIR}/admin/browser-admin.service" /etc/systemd/system/browser-admin.service

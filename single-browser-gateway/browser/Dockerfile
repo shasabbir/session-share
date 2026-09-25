@@ -1,28 +1,43 @@
-# Using Debian 12 (Bookworm) Slim to avoid Ubuntu 22.04's snapd dependency for Chromium
-FROM debian:bookworm-slim
+FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=C.UTF-8
 
-# Install Chromium, virtual display, minimal window manager, and noVNC bridge
+# 1. Install base utilities, virtual display (Xvfb), window manager (Openbox), and noVNC
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    chromium \
     xvfb \
     openbox \
     x11vnc \
     novnc \
     websockify \
     curl \
+    wget \
     ca-certificates \
     procps \
+    gnupg \
     fonts-liberation \
     fonts-noto-color-emoji \
     && rm -rf /var/lib/apt/lists/*
 
-# Ensure noVNC has an index.html pointing to vnc.html
+# 2. Install official Google Chrome (bypasses Ubuntu snapd and Debian CDN 404 issues)
+RUN ARCH=$(dpkg --print-architecture) \
+    && if [ "$ARCH" = "amd64" ]; then \
+        echo "Installing official Google Chrome for amd64..." \
+        && curl -fsSL https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -o /tmp/chrome.deb \
+        && apt-get update \
+        && apt-get install -y --no-install-recommends /tmp/chrome.deb \
+        && rm -f /tmp/chrome.deb \
+        && ln -sf /usr/bin/google-chrome-stable /usr/bin/chromium; \
+    else \
+        echo "Installing distribution browser for $ARCH..." \
+        && apt-get update && apt-get install -y --no-install-recommends chromium; \
+    fi \
+    && rm -rf /var/lib/apt/lists/*
+
+# 3. Ensure noVNC root index points to vnc.html
 RUN ln -sf /usr/share/novnc/vnc.html /usr/share/novnc/index.html
 
-# Create profile directory for persistent browser data
+# 4. Create persistent profile mount point
 RUN mkdir -p /profile && chmod 777 /profile
 
 WORKDIR /
