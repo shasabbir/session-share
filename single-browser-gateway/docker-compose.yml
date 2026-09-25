@@ -7,6 +7,9 @@ services:
       network: host
     container_name: cloud-browser-desktop
     restart: always
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     environment:
       - TARGET_URL=${TARGET_URL:-https://example.com}
       - RESOLUTION=${DESKTOP_RESOLUTION:-1920x1080}
@@ -37,6 +40,9 @@ services:
       network: host
     container_name: cloud-browser-mobile
     restart: always
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     environment:
       - TARGET_URL=${TARGET_URL:-https://example.com}
       - RESOLUTION=${MOBILE_RESOLUTION:-412x915}
