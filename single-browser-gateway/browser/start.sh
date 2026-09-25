@@ -52,10 +52,12 @@ if [ "${IS_MOBILE}" = "true" ]; then
     EXTRA_FLAGS="${EXTRA_FLAGS} --user-agent=\"${MOBILE_UA}\" --enable-touch-drag-drop --touch-events=enabled"
 fi
 
-echo "Launching Chromium in dedicated mode..."
+echo "Launching Chromium in dedicated mode for: ${TARGET_URL}"
 
+# --test-type suppresses the yellow '--no-sandbox' warning bar
 exec chromium \
     --no-sandbox \
+    --test-type \
     --disable-gpu \
     --disable-dev-shm-usage \
     --no-first-run \
