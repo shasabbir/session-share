@@ -1,46 +1,63 @@
 #!/bin/bash
 set -e
 
-# Instant Apache Port 5151 Fixer
+# Instant Apache Port 5151 Fixer & Diagnostic
 if [ "$EUID" -ne 0 ]; then
     echo "[ERROR] Please run as root: sudo bash fix-apache.sh"
     exit 1
 fi
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$PROJECT_DIR"
 
 echo "=========================================="
-echo "   Fixing Apache Port 5151 Configuration"
+echo "   Fixing & Diagnosing Port 5151 Gateway"
 echo "=========================================="
 
 # 1. Ensure Listen 5151 in ports.conf
+echo "[1/6] Checking /etc/apache2/ports.conf..."
 if ! grep -q "Listen 5151" /etc/apache2/ports.conf; then
-    echo "[1/5] Adding Listen 5151 to /etc/apache2/ports.conf..."
+    echo "Adding Listen 5151 to ports.conf..."
     echo "Listen 5151" >> /etc/apache2/ports.conf
 else
-    echo "[1/5] Listen 5151 is already in /etc/apache2/ports.conf."
+    echo "Listen 5151 is confirmed present."
 fi
 
-# 2. Deploy 000-browser.conf (prefix 000- ensures it loads first before robobari)
-echo "[2/5] Deploying /etc/apache2/sites-available/000-browser.conf..."
-cp "${PROJECT_DIR}/apache/browser.conf" /etc/apache2/sites-available/000-browser.conf
-mkdir -p /var/www/html
-cp "${PROJECT_DIR}/apache/index.html" /var/www/html/index.html
+# 2. Deploy isolated DocumentRoot in /var/www/browser-gateway (completely separates from Robobari)
+echo "[2/6] Setting up isolated DocumentRoot in /var/www/browser-gateway..."
+mkdir -p /var/www/browser-gateway
+cp "${PROJECT_DIR}/apache/index.html" /var/www/browser-gateway/index.html
+chmod -R 755 /var/www/browser-gateway
 
-# 3. Enable 000-browser.conf and disable any stale browser.conf
-echo "[3/5] Activating 000-browser.conf..."
+# 3. Deploy 000-browser.conf
+echo "[3/6] Deploying /etc/apache2/sites-available/000-browser.conf..."
+cp "${PROJECT_DIR}/apache/browser.conf" /etc/apache2/sites-available/000-browser.conf
+
+# 4. Activate 000-browser.conf and deactivate old browser.conf
+echo "[4/6] Enabling 000-browser.conf..."
 a2dissite browser.conf 2>/dev/null || true
 a2ensite 000-browser.conf
 
-# 4. Test configuration
-echo "[4/5] Testing Apache configuration..."
+# 5. Test configuration and restart Apache
+echo "[5/6] Testing and restarting Apache..."
 apache2ctl configtest
-
-# 5. Restart Apache
-echo "[5/5] Restarting Apache service..."
 systemctl restart apache2
 
+# 6. Verify Docker containers are up
+echo "[6/6] Ensuring Docker browser containers are running..."
+docker compose up -d
+
+echo ""
 echo "=========================================="
-echo "[SUCCESS] Apache VirtualHost Table:"
-apache2ctl -S | grep -E "5151|port" || apache2ctl -S
+echo "   DIAGNOSTIC & VERIFICATION RESULTS"
 echo "=========================================="
+echo "--> Active Apache VirtualHosts for Port 5151:"
+apache2ctl -S 2>&1 | grep -E "5151|port 5151|robobari" || true
+echo ""
+echo "--> Enabled Apache Sites:"
+ls -la /etc/apache2/sites-enabled/
+echo ""
+echo "--> Docker Container Status:"
+docker compose ps
+echo "=========================================="
+echo "Setup complete! Please test in your browser now."

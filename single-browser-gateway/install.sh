@@ -92,8 +92,9 @@ fi
 
 # Deploy as 000-browser.conf to ensure top loading priority over other sites
 cp "${PROJECT_DIR}/apache/browser.conf" /etc/apache2/sites-available/000-browser.conf
-mkdir -p /var/www/html
-cp "${PROJECT_DIR}/apache/index.html" /var/www/html/index.html
+mkdir -p /var/www/browser-gateway
+cp "${PROJECT_DIR}/apache/index.html" /var/www/browser-gateway/index.html
+chmod -R 755 /var/www/browser-gateway
 
 a2dissite browser.conf 2>/dev/null || true
 a2ensite 000-browser.conf
